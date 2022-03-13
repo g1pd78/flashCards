@@ -1,3 +1,26 @@
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import sessionmaker
+
+
+Base = declarative_base()
+engine = create_engine('sqlite:///flashcard.db?check_same_thread=False')
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+
+class CardsTable(Base):
+    __tablename__ = 'flashcard'
+    id = Column(Integer, primary_key=True)
+    question = Column(String)
+    answer = Column(String)
+
+
+Base.metadata.create_all(engine)
+
 
 class FlashCards:
 
@@ -5,9 +28,6 @@ class FlashCards:
     msg_need_answer = 'Please press "y" to see the answer or press "n" to skip:'
     msg_answer = 'Answer:'
     msg_no_cards = 'There is no flashcard to practice!'
-
-    def __init__(self):
-        self.cards = {}
 
     def add_card(self):
         print(self.msg_question)
@@ -21,20 +41,21 @@ class FlashCards:
         while answer == ' ' or not answer:
             print(self.msg_answer)
             answer = input()
-        self.cards[question] = answer
+
+        new_data = CardsTable(question=question, answer=answer)
+        session.add(new_data)
+        session.commit()
         print()
 
     def practice_card(self):
-        if not self.cards:
-            print(self.msg_no_cards)
-        else:
-            for question in self.cards:
-                print(self.msg_question, question)
-                print(self.msg_need_answer)
-                if input() == 'y':
-                    print()
-                    print(self.msg_answer, self.cards[question])
+        res = session.query(CardsTable).all()
+        for i in res:
+            print(self.msg_question, i.question)
+            print(self.msg_need_answer)
+            if input() == 'y':
                 print()
+                print(self.msg_answer, i.answer)
+            print()
 
 
 class Menu:
